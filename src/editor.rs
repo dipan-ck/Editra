@@ -1,14 +1,12 @@
 use std::{
     cmp::min,
+    env,
     io::{self},
 };
 
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 
-use crate::terminal::Terminal;
-
-const NAME: &str = env!("CARGO_PKG_NAME");
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+use crate::{terminal::Terminal, view::View};
 
 struct Location {
     x: usize,
@@ -18,18 +16,21 @@ struct Location {
 pub struct Editor {
     quit: bool,
     location: Location,
+    view: View,
 }
 
 impl Editor {
     pub fn default() -> Self {
         Editor {
             quit: false,
+            view: View::default(),
             location: Location { x: 0, y: 0 },
         }
     }
 
     pub fn run(&mut self) -> Result<(), io::Error> {
         Terminal::initialize()?;
+        self.handle_args()?;
         let result = self.render();
         Terminal::terminate()?;
         result
@@ -46,13 +47,13 @@ impl Editor {
             self.resolve_event(&event)?;
         }
     }
-    fn refresh_terminal(&self) -> Result<(), io::Error> {
+    fn refresh_terminal(&mut self) -> Result<(), io::Error> {
         Terminal::hide_cursor()?;
         if self.quit {
             Terminal::clear_terminal()?;
             Terminal::print("Goodbye")?;
         } else {
-            self.draw_rows()?;
+            self.view.render()?;
             Terminal::move_cursor_to(self.location.x as u16, self.location.y as u16)?;
         }
         Terminal::show_cursor()?;
@@ -98,9 +99,9 @@ impl Editor {
     }
 
     fn resolve_event(&mut self, event: &Event) -> Result<(), io::Error> {
-        if let Event::Key(k) = event {
-            match k.code {
-                KeyCode::Char('q') if k.modifiers == KeyModifiers::CONTROL => {
+        match event {
+            Event::Key(key_event) => match key_event.code {
+                KeyCode::Char('q') if key_event.modifiers == KeyModifiers::CONTROL => {
                     self.quit = true;
                 }
                 KeyCode::Up
@@ -110,42 +111,26 @@ impl Editor {
                 | KeyCode::PageDown
                 | KeyCode::PageUp
                 | KeyCode::End
-                | KeyCode::Home => self.calculate_location(k.code)?,
+                | KeyCode::Home => self.calculate_location(key_event.code)?,
+
                 _ => {}
+            },
+
+            Event::Resize(_w, _h) => {
+                self.view.need_redraw = true;
             }
+
+            _ => {}
         }
 
         Ok(())
     }
 
-    fn draw_welcome_message(&self) -> Result<(), io::Error> {
-        let message = format!("Welcome to {} - version: {}", NAME, VERSION);
+    fn handle_args(&mut self) -> Result<(), io::Error> {
+        let args: Vec<String> = env::args().collect();
 
-        let terminal_width = Terminal::size().0 as usize;
-        let msg_len = message.len();
-
-        let padding = (terminal_width - msg_len) / 2;
-        let spaces = " ".repeat(padding - 1);
-
-        let output = format!("~{spaces}{message}");
-
-        Terminal::print(output)
-    }
-
-    fn draw_rows(&self) -> Result<(), io::Error> {
-        let (_col, rows) = Terminal::size();
-
-        for r in 0..rows {
-            if r == rows / 3 {
-                Terminal::clear_line()?;
-                self.draw_welcome_message()?;
-            } else {
-                Terminal::move_cursor_to(0, r)?;
-                Terminal::clear_line()?;
-                Terminal::print("~")?;
-            }
-
-            Terminal::print("\r\n")?;
+        if let Some(path) = args.get(1) {
+            self.view.load(path.to_owned())?;
         }
 
         Ok(())
