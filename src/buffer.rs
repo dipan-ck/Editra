@@ -23,6 +23,10 @@ impl Buffer {
         Ok(())
     }
 
+    pub fn clear_buffer(&mut self) {
+        self.lines.clear();
+    }
+
     pub fn is_empty(&self) -> bool {
         self.lines.is_empty()
     }
