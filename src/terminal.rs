@@ -21,7 +21,12 @@ impl Terminal {
     }
 
     pub fn clear_terminal() -> Result<(), io::Error> {
-        Self::queue_command(Clear(terminal::ClearType::All))
+        Self::queue_command(Clear(terminal::ClearType::All))?;
+
+        Self::queue_command(Clear(terminal::ClearType::Purge))?;
+        Self::move_cursor_to(0, 0)?;
+
+        Ok(())
     }
 
     pub fn print<T: Display>(val: T) -> Result<(), io::Error> {
