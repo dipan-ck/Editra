@@ -2,6 +2,8 @@
 
 A lightweight, terminal-based text editor written in Rust.
 
+![Editra's ui](image.png)
+
 ## Features
 
 - **Syntax Highlighting**: Currently supports Rust with keyword, type, literal, number, string, character, lifetime, and comment highlighting
