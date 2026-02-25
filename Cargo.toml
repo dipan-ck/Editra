@@ -10,3 +10,5 @@ name = "editra"
 
 [dependencies]
 crossterm = "0.29.0"
+unicode-segmentation = "1.11"
+unicode-width = "0.1"
