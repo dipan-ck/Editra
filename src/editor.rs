@@ -60,6 +60,19 @@ impl Editor {
                 KeyCode::Char('q') if key_event.modifiers == KeyModifiers::CONTROL => {
                     self.quit = true;
                 }
+
+                KeyCode::Char('s') if key_event.modifiers == KeyModifiers::CONTROL => {
+                    let old_file_type = self.view.buffer.file_type;
+                    self.view.buffer.save_buffer_as_file()?;
+                    if old_file_type != self.view.buffer.file_type {
+                        self.view
+                            .highlighter
+                            .update_file_type(self.view.buffer.file_type);
+                        self.view.highlighter.highlight_all(&self.view.buffer.lines);
+                        self.view.need_redraw = true;
+                    }
+                }
+
                 KeyCode::Up
                 | KeyCode::Down
                 | KeyCode::Left
@@ -68,6 +81,11 @@ impl Editor {
                 | KeyCode::PageUp
                 | KeyCode::End
                 | KeyCode::Home => self.view.update_cursor_location(key_event.code)?,
+                KeyCode::Char(c) => self.view.insert_char_to_line(c)?,
+                KeyCode::Delete => self.view.delete_char()?,
+                KeyCode::Backspace => self.view.backspace_char()?,
+                KeyCode::Tab => self.view.insert_tab()?,
+                KeyCode::Enter => self.view.insert_newline()?,
 
                 _ => {}
             },
